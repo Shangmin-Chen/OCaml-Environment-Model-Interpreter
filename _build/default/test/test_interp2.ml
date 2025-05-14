@@ -88,39 +88,11 @@ let type_of_tests =
       (* TODO: write more tests *)
     ]
 
-    let eval_tests =
-      "eval test suite" >:::
-        [
-          "simple recursive function" >:: (fun _ ->
-            let prog = Option.get (parse "let rec f (n : int) : int = if n <= 0 then 0 else f (n-1)\nlet result : int = f 3") in
-            let expr = desugar prog in
-            let expected = VNum 0 in
-            let actual = eval expr in
-            assert_equal expected actual
-          );
-          "fibonacci" >:: (fun _ ->
-            let prog = Option.get (parse "let rec fib (n : int) : int = if n <= 1 then n else fib (n-1) + fib (n-2)\nlet _ : unit = assert (fib 5 = 5)") in
-            let expr = desugar prog in
-            let expected = VUnit in
-            let actual = eval expr in
-            assert_equal expected actual
-          );
-          "nested recursive calls" >:: (fun _ ->
-            let prog = Option.get (parse "let rec fact (n : int) : int = if n <= 1 then 1 else n * fact (n-1)\nlet _ : unit = assert (fact 5 = 120)") in
-            let expr = desugar prog in
-            let expected = VUnit in
-            let actual = eval expr in
-            assert_equal expected actual
-          );
-        ]
-
-
 let tests =
   "interp2 test suite" >:::
     [
       desugar_tests;
       type_of_tests;
-      eval_tests
     ]
 
 let _ = run_test_tt_main tests

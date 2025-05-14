@@ -310,26 +310,29 @@ let eval (e : expr) :  value =
     | Fun (x, _, e) -> VClos { arg = x; body = e; env; name = None }
     | App (e1, e2) ->
       (match eval env e1 with
-        | VClos { arg; body; env = closure_env; name = _ } ->
+        | VClos { arg; body; env = closure_env; name = None } ->
           let arg_val = eval env e2 in
           let new_env = Env.add arg arg_val closure_env in
           eval new_env body
-        | v -> raise (Failure (err_msg (FunAppTyErr (match v with
-                                                      | VNum _ -> IntTy
-                                                      | VBool _ -> BoolTy
-                                                      | VUnit -> UnitTy
-                                                      | VClos _ -> FunTy (IntTy, IntTy))))))
+        | _ -> raise (Failure (err_msg (FunAppTyErr (FunTy (IntTy, IntTy))))))
     (* Let-Expressions *)
     | Let { is_rec; name; ty = _; binding; body } ->
+      (* Recursive case *)
       if is_rec then
         (match binding with
          | Fun (arg, _, fun_body) ->
-            let rec clos = lazy (VClos { arg; body = fun_body; env = Env.add name (Lazy.force clos) env; name = Some name }) in
-            let clos = Lazy.force clos in
-            let final_env = Env.add name clos env in
+            (* First create the closure with a placeholder environment *)
+            let clos = VClos { arg; body = fun_body; env = env; name = Some name } in
+            (* Update the environment to include the closure *)
+            let new_env = Env.add name clos env in
+            (* Update the closure's environment to include itself *)
+            let clos = VClos { arg; body = fun_body; env = new_env; name = Some name } in
+            (* Update the environment again with the final closure *)
+            let final_env = Env.add name clos new_env in
             eval final_env body
          | _ -> raise (Failure (err_msg (LetRecErr name))))
       else
+        (* non recursive case, same as before *)
         let v1 = eval env binding in
         eval (Env.add name v1 env) body
     (* Assert *)
